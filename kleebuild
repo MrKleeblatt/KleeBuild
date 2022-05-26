@@ -1,0 +1,93 @@
+#!/bin/bash
+
+function kleebuild_init {
+    if [ ! -f "kleebuild.yml" ]; then
+        touch kleebuild.yml
+        echo -e "ccflags: -Wall\nname: Main" >kleebuild.yml
+    fi
+    if [ ! -f "compile_commands.json" ]; then
+        touch compile_commands.json
+        echo "[]" >compile_commands.json
+    fi
+    if [ ! -d "src" ]; then
+        mkdir src
+    fi
+    cd src || exit 1
+    if [ ! -d "include" ]; then
+        mkdir include
+    fi
+    if [ ! -f "main.c" ]; then
+        touch main.c
+    fi
+}
+
+function parse_yaml {
+    local prefix=$2
+    local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs
+    fs=$(echo @ | tr @ '\034')
+    sed -ne "s|^\($s\):|\1|" \
+        -e "s|^\($s\)\($w\){$s:$s}[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
+        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p" "$1" |
+        awk -F"$fs" '{
+      indent = length($1)/2;
+      vname[indent] = $2;
+      for (i in vname) {if (i > indent) {delete vname[i]}}
+      if (length($3) > 0) {
+         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+         printf("%s%s%s=\"%s\"\n", "'"$prefix"'",vn, $2, $3);
+      }
+   }'
+}
+
+function kleebuild_build {
+
+    kleebuild_init
+
+    # create build directory if theren is no
+    if [ ! -d "build/" ]; then
+        mkdir build
+    fi
+
+    # read cflags and name from configuration file
+    build_ccflags=""
+    eval "$(parse_yaml kleebuild.yml build_ 1)"
+    if [[ -z "${build_name}" ]] || [[ " " == "${build_ccflags}" ]]; then
+        echo "Error reading kleebuild.yml"
+        echo "Please delete lines where there is no value assigned to the key word :)"
+        exit 1
+    fi
+
+    # change directory to src to start compiling
+    if [ -d "src" ]; then
+        cd src || exit 1
+    fi
+
+    # compile every source file on its own to an object file in build directory
+    sources=(./*.c)
+    for file in "${sources[@]}"; do
+        readlink -f "$file"
+        local temp="../build/$file"
+        gcc -c "$file" "$build_ccflags" -o "${temp/".c"/".o"}"
+    done
+
+    # compile all those object files to one executable
+    cd ../build || exit 1
+    objects=(*.o)
+    gcc -o "$build_name" "${objects[@]}" "$build_ccflags"
+}
+
+function kleebuild_clean {
+    rm -rf build/*
+}
+
+if [ "$1" == "build" ]; then
+    echo "Building..."
+    kleebuild_build
+elif [ "$1" == "clean" ]; then
+    echo "Cleaning..."
+    kleebuild_clean
+    echo "Clean finished."
+else
+    echo "\"$1\" is no valid command."
+    exit 1
+fi
