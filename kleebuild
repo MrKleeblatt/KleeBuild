@@ -19,6 +19,7 @@ function kleebuild_init {
     if [ ! -f "main.c" ]; then
         touch main.c
     fi
+    cd ..
 }
 
 function parse_yaml {
