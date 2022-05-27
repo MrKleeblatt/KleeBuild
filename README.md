@@ -5,20 +5,28 @@ Just go ahead and initialize a project in an empty directory and start coding.
 Currently this version automatically creates a `compile_commands.json` for use with JetBrains IDE.
 I'm planning on expanding the `kleebuild.yml` configuration file so you can decide which IDE to use.
   
-initialize a C project with
+## initialize a C project with
 
 ```bash
 kleebuild init
 ```
 
-build it with
+## build it with
 
 ```bash
 kleebuild build
 ```
 
-clean up the build directory with
+## clean up the build directory with
 
 ```bash
 kleebuild clean
 ```
+
+## run the executable with
+
+```bash
+kleebuild run
+```
+
+This will automatically set the priority to 20 (least priority on linux)
