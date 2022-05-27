@@ -1,5 +1,8 @@
 #!/bin/bash
 
+build_name=""
+build_ccflags=""
+
 function kleebuild_init {
     if [ ! -f "kleebuild.yml" ]; then
         touch kleebuild.yml
@@ -50,8 +53,7 @@ function kleebuild_build {
     fi
 
     # read cflags and name from configuration file
-    build_ccflags=""
-    eval "$(parse_yaml kleebuild.yml build_ 1)"
+    eval "$(parse_yaml kleebuild.yml build_)"
     if [[ -z "${build_name}" ]] || [[ " " == "${build_ccflags}" ]]; then
         echo "Error reading kleebuild.yml"
         echo "Please delete lines where there is no value assigned to the key word :)"
@@ -81,6 +83,13 @@ function kleebuild_clean {
     rm -rf build/*
 }
 
+
+function kleebuild_run {
+    eval "$(parse_yaml kleebuild.yml build_)"
+    workingDir=$(pwd)
+    nice -n 20 "$workingDir/build/$build_name"
+}
+
 if [ "$1" == "build" ]; then
     echo "Building..."
     kleebuild_build
@@ -88,6 +97,9 @@ elif [ "$1" == "clean" ]; then
     echo "Cleaning..."
     kleebuild_clean
     echo "Clean finished."
+elif [ "$1" == "run" ]; then
+    kleebuild_run
+    exit $?
 else
     echo "\"$1\" is no valid command."
     exit 1
