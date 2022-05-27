@@ -68,7 +68,7 @@ function kleebuild_build {
     for file in "${sources[@]}"; do
         readlink -f "$file"
         local temp="../build/$file"
-        gcc -c "$file" "$build_ccflags" -o "${temp/".c"/".o"}"
+        gcc -c "$file" "$build_ccflags" -o "${temp/".c"/".o"}" || exit 1
     done
 
     # compile all those object files to one executable
