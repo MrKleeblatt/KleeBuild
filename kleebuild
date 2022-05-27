@@ -6,7 +6,7 @@ build_ccflags=""
 function kleebuild_init {
     if [ ! -f "kleebuild.yml" ]; then
         touch kleebuild.yml
-        echo -e "ccflags: -Wall\nname: Main" >kleebuild.yml
+        echo -e "ccflags: -Wall\nname: Main" > kleebuild.yml
     fi
     if [ ! -f "compile_commands.json" ]; then
         touch compile_commands.json
@@ -68,7 +68,6 @@ function kleebuild_build {
     # compile every source file on its own to an object file in build directory
     sources=(./*.c)
     for file in "${sources[@]}"; do
-        readlink -f "$file"
         local temp="../build/$file"
         gcc -c "$file" "$build_ccflags" -o "${temp/".c"/".o"}" || exit 1
     done
@@ -91,7 +90,6 @@ function kleebuild_run {
 }
 
 if [ "$1" == "build" ]; then
-    echo "Building..."
     kleebuild_build
 elif [ "$1" == "clean" ]; then
     echo "Cleaning..."
