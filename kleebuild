@@ -1,29 +1,10 @@
 #!/bin/bash
 
-build_name=""
-build_ccflags=""
-
-function kleebuild_init {
-    if [ ! -f "kleebuild.yml" ]; then
-        touch kleebuild.yml
-        echo -e "ccflags: -Wall\nname: Main" > kleebuild.yml
-    fi
-    if [ ! -f "compile_commands.json" ]; then
-        touch compile_commands.json
-        echo "[]" >compile_commands.json
-    fi
-    if [ ! -d "src" ]; then
-        mkdir src
-    fi
-    cd src || exit 1
-    if [ ! -d "include" ]; then
-        mkdir include
-    fi
-    if [ ! -f "main.c" ]; then
-        touch main.c
-    fi
-    cd ..
-}
+# configuration for this tool
+if [ ! -f "kleebuild.yml" ]; then
+    touch kleebuild.yml
+    echo -e "ccflags: -Wall\nname: Main" >kleebuild.yml
+fi
 
 function parse_yaml {
     local prefix=$2
@@ -43,6 +24,126 @@ function parse_yaml {
    }'
 }
 
+build_name=""
+build_ccflags=""
+
+# read cflags and name from configuration file
+eval "$(parse_yaml kleebuild.yml build_)"
+
+function kleebuild_init {
+    # run configuration
+    (
+        if [ ! -d ".idea" ]; then
+            mkdir .idea
+        fi
+        cd .idea || exit $?
+
+        if [ ! -f "custcustomTargets.xml" ]; then
+            touch customTargets.xml
+            echo \
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<project version=\"4\">
+  <component name=\"CLionExternalBuildManager\">
+    <target id=\"45bfb92c-964a-4f2c-a80a-192ba015d85b\" name=\"KleeBuild\" defaultType=\"TOOL\">
+      <configuration id=\"b520727f-72b6-4494-afe4-08c070a62eaf\" name=\"KleeBuild\" toolchainName=\"Default\">
+        <build type=\"TOOL\">
+          <tool actionId=\"Tool_External Tools_build\" />
+        </build>
+        <clean type=\"TOOL\">
+          <tool actionId=\"Tool_External Tools_clean\" />
+        </clean>
+      </configuration>
+    </target>
+  </component>
+</project>" >customTargets.xml
+        fi
+
+        if [ ! -d "runConfigurations" ]; then
+            mkdir runConfigurations
+        fi
+        cd runConfigurations || exit $?
+        xmls=($(find ./ -type f -name "*.xml"))
+        if [ "${#xmls[@]}" == 0 ]; then
+            touch "$build_name".xml
+            project_dir=$(cd ../.. && pwd)
+            echo \
+                "<component name=\"ProjectRunConfigurationManager\">
+    <configuration 
+            default=\"false\" 
+            name=\"$build_name\" 
+            type=\"CLionExternalRunConfiguration\" 
+            factoryName=\"Application\" 
+            REDIRECT_INPUT=\"false\" 
+            ELEVATE=\"false\" 
+            USE_EXTERNAL_CONSOLE=\"false\" 
+            PASS_PARENT_ENVS_2=\"true\" 
+            PROJECT_NAME=\"${project_dir##*/}\" 
+            TARGET_NAME=\"KleeBuild\" 
+            CONFIG_NAME=\"KleeBuild\" 
+            RUN_PATH=\"\$PROJECT_DIR$/build/Main\">
+        <method v=\"2\">
+            <option name=\"CLION.EXTERNAL.BUILD\" enabled=\"true\"/>
+        </method>
+    </configuration>
+</component>" >"$build_name".xml
+        fi
+        cd ..
+
+        if [ ! -d "tools" ]; then
+            mkdir tools
+        fi
+        cd tools || exit $?
+        if [ ! -f "External Tools.xml" ]; then
+            touch "External Tools.xml"
+            echo \
+                "<toolSet name=\"External Tools\">
+  <tool name=\"build\" description=\"builds the project in &quot;build&quot; directory\" showInMainMenu=\"false\" showInEditor=\"false\" showInProject=\"false\" showInSearchPopup=\"false\" disabled=\"false\" useConsole=\"true\" showConsoleOnStdOut=\"false\" showConsoleOnStdErr=\"false\" synchronizeAfterRun=\"true\">
+    <exec>
+      <option name=\"COMMAND\" value=\"kleebuild\" />
+      <option name=\"PARAMETERS\" value=\"build\" />
+      <option name=\"WORKING_DIRECTORY\" value=\"\$ProjectFileDir$\" />
+    </exec>
+  </tool>
+  <tool name=\"clean\" description=\"cleans up your project\" showInMainMenu=\"false\" showInEditor=\"false\" showInProject=\"false\" showInSearchPopup=\"false\" disabled=\"false\" useConsole=\"true\" showConsoleOnStdOut=\"false\" showConsoleOnStdErr=\"false\" synchronizeAfterRun=\"true\">
+    <exec>
+      <option name=\"COMMAND\" value=\"kleebuild\" />
+      <option name=\"PARAMETERS\" value=\"clean\" />
+      <option name=\"WORKING_DIRECTORY\" value=\"\$ProjectFileDir$\" />
+    </exec>
+  </tool>
+</toolSet>" >"External Tools.xml"
+        fi
+    )
+
+    # configuration of CLion's stupid compile_commands.json
+    # that has to exist because otherwise CLion won't understand
+    # that I'm NOT using CMake
+    if [ ! -f "compile_commands.json" ]; then
+        touch compile_commands.json
+        echo \
+            "[{
+    \"directory\": \"$(pwd)\",
+    \"command\": \"gcc\",
+    \"file\": \"src/main.c\"
+}]" >compile_commands.json
+
+    fi
+
+    # standard project structure
+    (
+        if [ ! -d "src" ]; then
+            mkdir src
+        fi
+        cd src || exit $?
+        if [ ! -d "include" ]; then
+            mkdir include
+        fi
+        if [ ! -f "main.c" ]; then
+            touch main.c
+        fi
+    )
+}
+
 function kleebuild_build {
 
     kleebuild_init
@@ -52,8 +153,7 @@ function kleebuild_build {
         mkdir build
     fi
 
-    # read cflags and name from configuration file
-    eval "$(parse_yaml kleebuild.yml build_)"
+    # check if config file was read successfully
     if [[ -z "${build_name}" ]] || [[ " " == "${build_ccflags}" ]]; then
         echo "Error reading kleebuild.yml"
         echo "Please delete lines where there is no value assigned to the key word :)"
@@ -62,18 +162,18 @@ function kleebuild_build {
 
     # change directory to src to start compiling
     if [ -d "src" ]; then
-        cd src || exit 1
+        cd src || exit $?
     fi
 
     # compile every source file on its own to an object file in build directory
     sources=(./*.c)
     for file in "${sources[@]}"; do
         local temp="../build/$file"
-        gcc -c "$file" "$build_ccflags" -o "${temp/".c"/".o"}" || exit 1
+        gcc -c "$file" -o "${temp/".c"/".o"}" $build_ccflags || exit $?
     done
 
     # compile all those object files to one executable
-    cd ../build || exit 1
+    cd ../build || exit $?
     objects=(*.o)
     gcc -o "$build_name" "${objects[@]}" "$build_ccflags"
 }
@@ -82,9 +182,7 @@ function kleebuild_clean {
     rm -rf build/*
 }
 
-
 function kleebuild_run {
-    eval "$(parse_yaml kleebuild.yml build_)"
     workingDir=$(pwd)
     nice -n 20 "$workingDir/build/$build_name"
 }
@@ -97,8 +195,10 @@ elif [ "$1" == "clean" ]; then
     echo "Clean finished."
 elif [ "$1" == "run" ]; then
     kleebuild_run
-    exit $?
+elif [ "$1" == "init" ]; then
+    kleebuild_init
 else
     echo "\"$1\" is no valid command."
     exit 1
 fi
+exit $?
