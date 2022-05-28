@@ -25,7 +25,7 @@ function parse_yaml {
 }
 
 build_name=""
-build_ccflags=""
+build_ccflags=()
 
 # read cflags and name from configuration file
 eval "$(parse_yaml kleebuild.yml build_)"
@@ -156,7 +156,7 @@ function kleebuild_build {
     fi
 
     # check if config file was read successfully
-    if [[ -z "${build_name}" ]] || [[ " " == "${build_ccflags}" ]]; then
+    if [[ -z "${build_name}" ]] || [[ ! ${#build_ccflags[@]} -gt 0 ]]; then
         echo "Error reading kleebuild.yml"
         echo "Please delete lines where there is no value assigned to the key word :)"
         exit 1
@@ -171,13 +171,13 @@ function kleebuild_build {
     sources=(./*.c)
     for file in "${sources[@]}"; do
         local temp="../build/$file"
-        gcc -c "$file" -o "${temp/".c"/".o"}" $build_ccflags || exit $?
+        gcc -c "$file" -o "${temp/".c"/".o"}" ${build_ccflags[@]} || exit $?
     done
 
     # compile all those object files to one executable
     cd ../build || exit $?
     objects=(*.o)
-    gcc -o "$build_name" "${objects[@]}" "$build_ccflags"
+    gcc -o "$build_name" "${objects[@]}" ${build_ccflags[@]}
 }
 
 function kleebuild_clean {
