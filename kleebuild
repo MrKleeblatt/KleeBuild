@@ -72,15 +72,17 @@ function kleebuild_init {
             default=\"false\" 
             name=\"$build_name\" 
             type=\"CLionExternalRunConfiguration\" 
-            factoryName=\"Application\" 
+            factoryName=\"Application\"
+            PROGRAM_PARAMS=\"run\"
             REDIRECT_INPUT=\"false\" 
             ELEVATE=\"false\" 
-            USE_EXTERNAL_CONSOLE=\"false\" 
+            USE_EXTERNAL_CONSOLE=\"false\"
+            WORKING_DIR=\"file://\$ProjectFileDir$\"
             PASS_PARENT_ENVS_2=\"true\" 
             PROJECT_NAME=\"${project_dir##*/}\" 
             TARGET_NAME=\"KleeBuild\" 
             CONFIG_NAME=\"KleeBuild\" 
-            RUN_PATH=\"\$PROJECT_DIR$/build/Main\">
+            RUN_PATH=\"$(type -Pf kleebuild)\">
         <method v=\"2\">
             <option name=\"CLION.EXTERNAL.BUILD\" enabled=\"true\"/>
         </method>
