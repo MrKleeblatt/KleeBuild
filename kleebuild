@@ -189,7 +189,9 @@ function kleebuild_run {
     nice -n 20 "$workingDir/build/$build_name"
 }
 
-if [ "$1" == "build" ]; then
+if [ "$1" == "init" ]; then
+    kleebuild_init
+elif [ "$1" == "build" ]; then
     kleebuild_build
 elif [ "$1" == "clean" ]; then
     echo "Cleaning..."
@@ -197,8 +199,6 @@ elif [ "$1" == "clean" ]; then
     echo "Clean finished."
 elif [ "$1" == "run" ]; then
     kleebuild_run
-elif [ "$1" == "init" ]; then
-    kleebuild_init
 else
     echo "\"$1\" is no valid command."
     exit 1
