@@ -14,14 +14,14 @@ function parse_yaml {
         -e "s|^\($s\)\($w\){$s:$s}[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
         -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p" "$1" |
         awk -F"$fs" '{
-      indent = length($1)/2;
-      vname[indent] = $2;
-      for (i in vname) {if (i > indent) {delete vname[i]}}
-      if (length($3) > 0) {
-         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-         printf("%s%s%s=\"%s\"\n", "'"$prefix"'",vn, $2, $3);
-      }
-   }'
+                indent = length($1)/2;
+                vname[indent] = $2;
+                for (i in vname) {if (i > indent) {delete vname[i]}}
+                if (length($3) > 0) {
+                    vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+                    printf("%s%s%s=\"%s\"\n", "'"$prefix"'",vn, $2, $3);
+                }
+            }'
 }
 
 build_name=""
@@ -42,20 +42,20 @@ function kleebuild_init {
             touch customTargets.xml
             echo \
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-<project version=\"4\">
-  <component name=\"CLionExternalBuildManager\">
-    <target id=\"45bfb92c-964a-4f2c-a80a-192ba015d85b\" name=\"KleeBuild\" defaultType=\"TOOL\">
-      <configuration id=\"b520727f-72b6-4494-afe4-08c070a62eaf\" name=\"KleeBuild\" toolchainName=\"Default\">
-        <build type=\"TOOL\">
-          <tool actionId=\"Tool_External Tools_build\" />
-        </build>
-        <clean type=\"TOOL\">
-          <tool actionId=\"Tool_External Tools_clean\" />
-        </clean>
-      </configuration>
-    </target>
-  </component>
-</project>" >customTargets.xml
+                <project version=\"4\">
+                  <component name=\"CLionExternalBuildManager\">
+                    <target id=\"45bfb92c-964a-4f2c-a80a-192ba015d85b\" name=\"KleeBuild\" defaultType=\"TOOL\">
+                      <configuration id=\"b520727f-72b6-4494-afe4-08c070a62eaf\" name=\"KleeBuild\" toolchainName=\"Default\">
+                        <build type=\"TOOL\">
+                          <tool actionId=\"Tool_External Tools_build\" />
+                        </build>
+                        <clean type=\"TOOL\">
+                          <tool actionId=\"Tool_External Tools_clean\" />
+                        </clean>
+                      </configuration>
+                    </target>
+                  </component>
+                </project>" >customTargets.xml
         fi
 
         if [ ! -d "runConfigurations" ]; then
@@ -68,26 +68,26 @@ function kleebuild_init {
             project_dir=$(cd ../.. && pwd)
             echo \
                 "<component name=\"ProjectRunConfigurationManager\">
-    <configuration 
-            default=\"false\" 
-            name=\"$build_name\" 
-            type=\"CLionExternalRunConfiguration\" 
-            factoryName=\"Application\"
-            PROGRAM_PARAMS=\"run\"
-            REDIRECT_INPUT=\"false\" 
-            ELEVATE=\"false\" 
-            USE_EXTERNAL_CONSOLE=\"false\"
-            WORKING_DIR=\"file://\$ProjectFileDir$\"
-            PASS_PARENT_ENVS_2=\"true\" 
-            PROJECT_NAME=\"${project_dir##*/}\" 
-            TARGET_NAME=\"KleeBuild\" 
-            CONFIG_NAME=\"KleeBuild\" 
-            RUN_PATH=\"$(type -Pf kleebuild)\">
-        <method v=\"2\">
-            <option name=\"CLION.EXTERNAL.BUILD\" enabled=\"true\"/>
-        </method>
-    </configuration>
-</component>" >"$build_name".xml
+                <configuration 
+                        default=\"false\" 
+                        name=\"$build_name\" 
+                        type=\"CLionExternalRunConfiguration\" 
+                        factoryName=\"Application\"
+                        PROGRAM_PARAMS=\"run\"
+                        REDIRECT_INPUT=\"false\" 
+                        ELEVATE=\"false\" 
+                        USE_EXTERNAL_CONSOLE=\"false\"
+                        WORKING_DIR=\"file://\$ProjectFileDir$\"
+                        PASS_PARENT_ENVS_2=\"true\" 
+                        PROJECT_NAME=\"${project_dir##*/}\" 
+                        TARGET_NAME=\"KleeBuild\" 
+                        CONFIG_NAME=\"KleeBuild\" 
+                        RUN_PATH=\"$(type -Pf kleebuild)\">
+                    <method v=\"2\">
+                        <option name=\"CLION.EXTERNAL.BUILD\" enabled=\"true\"/>
+                    </method>
+                </configuration>
+            </component>" >"$build_name".xml
         fi
         cd ..
 
@@ -99,21 +99,21 @@ function kleebuild_init {
             touch "External Tools.xml"
             echo \
                 "<toolSet name=\"External Tools\">
-  <tool name=\"build\" description=\"builds the project in &quot;build&quot; directory\" showInMainMenu=\"false\" showInEditor=\"false\" showInProject=\"false\" showInSearchPopup=\"false\" disabled=\"false\" useConsole=\"true\" showConsoleOnStdOut=\"false\" showConsoleOnStdErr=\"false\" synchronizeAfterRun=\"true\">
-    <exec>
-      <option name=\"COMMAND\" value=\"kleebuild\" />
-      <option name=\"PARAMETERS\" value=\"build\" />
-      <option name=\"WORKING_DIRECTORY\" value=\"\$ProjectFileDir$\" />
-    </exec>
-  </tool>
-  <tool name=\"clean\" description=\"cleans up your project\" showInMainMenu=\"false\" showInEditor=\"false\" showInProject=\"false\" showInSearchPopup=\"false\" disabled=\"false\" useConsole=\"true\" showConsoleOnStdOut=\"false\" showConsoleOnStdErr=\"false\" synchronizeAfterRun=\"true\">
-    <exec>
-      <option name=\"COMMAND\" value=\"kleebuild\" />
-      <option name=\"PARAMETERS\" value=\"clean\" />
-      <option name=\"WORKING_DIRECTORY\" value=\"\$ProjectFileDir$\" />
-    </exec>
-  </tool>
-</toolSet>" >"External Tools.xml"
+                  <tool name=\"build\" description=\"builds the project in &quot;build&quot; directory\" showInMainMenu=\"false\" showInEditor=\"false\" showInProject=\"false\" showInSearchPopup=\"false\" disabled=\"false\" useConsole=\"true\" showConsoleOnStdOut=\"false\" showConsoleOnStdErr=\"false\" synchronizeAfterRun=\"true\">
+                    <exec>
+                      <option name=\"COMMAND\" value=\"kleebuild\" />
+                      <option name=\"PARAMETERS\" value=\"build\" />
+                      <option name=\"WORKING_DIRECTORY\" value=\"\$ProjectFileDir$\" />
+                    </exec>
+                  </tool>
+                  <tool name=\"clean\" description=\"cleans up your project\" showInMainMenu=\"false\" showInEditor=\"false\" showInProject=\"false\" showInSearchPopup=\"false\" disabled=\"false\" useConsole=\"true\" showConsoleOnStdOut=\"false\" showConsoleOnStdErr=\"false\" synchronizeAfterRun=\"true\">
+                    <exec>
+                      <option name=\"COMMAND\" value=\"kleebuild\" />
+                      <option name=\"PARAMETERS\" value=\"clean\" />
+                      <option name=\"WORKING_DIRECTORY\" value=\"\$ProjectFileDir$\" />
+                    </exec>
+                  </tool>
+                </toolSet>" >"External Tools.xml"
         fi
     )
 
@@ -124,10 +124,10 @@ function kleebuild_init {
         touch compile_commands.json
         echo \
             "[{
-    \"directory\": \"$(pwd)\",
-    \"command\": \"gcc\",
-    \"file\": \"src/main.c\"
-}]" >compile_commands.json
+                \"directory\": \"$(pwd)\",
+                \"command\": \"gcc\",
+                \"file\": \"src/main.c\"
+            }]" >compile_commands.json
 
     fi
 
