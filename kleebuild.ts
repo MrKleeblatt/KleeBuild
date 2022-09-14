@@ -11,11 +11,11 @@ function notExisting(filename: string): boolean {
 if (notExisting("./kleebuild.json")) {
 	Deno.writeTextFileSync("./kleebuild.json", JSON.stringify({
 		name: "Main",
-		ccflags: "-Wall"
+		ccflags: ["-Wall"]
 	}))
 }
 
-const Config: { name: string, ccflags: string } = JSON.parse(Deno.readTextFileSync("./kleebuild.json"))
+const Config: { name: string, ccflags: string[] } = JSON.parse(Deno.readTextFileSync("./kleebuild.json"))
 switch (Deno.args[0]) {
 	case "init":
 		if (Deno.args[1]) {
@@ -121,7 +121,6 @@ int main(int argc, char** argv){
 }
 
 async function build() {
-	init()
 	if (notExisting("build")) Deno.mkdirSync("build")
 	for (const file of Deno.readDirSync("src")) if (file.name.endsWith(".c")) {
 		const process = Deno.run({
@@ -131,7 +130,7 @@ async function build() {
 				`src/${file.name}`,
 				"-o",
 				`build/${file.name.replace(".c", ".o")}`,
-				Config.ccflags
+				...Config.ccflags,
 			],
 			stdout: "piped"
 		})
@@ -143,7 +142,7 @@ async function build() {
 		"build/" + Config.name
 	]
 	for (const file of Deno.readDirSync("build")) if (file.name.endsWith(".o")) options.push("build/" + file.name)
-	options.push(Config.ccflags)
+	options.push(...Config.ccflags)
 	const process = Deno.run({
 		cmd: options,
 		stdout: "piped"
