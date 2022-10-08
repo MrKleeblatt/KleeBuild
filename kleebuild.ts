@@ -10,12 +10,15 @@ function notExisting(filename: string): boolean {
 
 if (notExisting("./kleebuild.json")) {
 	Deno.writeTextFileSync("./kleebuild.json", JSON.stringify({
-		name: "Main",
-		ccflags: ["-Wall"]
+		default: {
+			executable_name: "Main",
+			compiler: "gcc",
+			ccflags: ["-Wall"]
+		}
 	}))
 }
 
-const Config: { name: string, ccflags: string[] } = JSON.parse(Deno.readTextFileSync("./kleebuild.json"))
+const Config: { [key: string]: { executable_name: string, compiler: string, ccflags: string[] } } = JSON.parse(Deno.readTextFileSync("./kleebuild.json"))
 switch (Deno.args[0]) {
 	case "init":
 		if (Deno.args[1]) {
@@ -36,15 +39,13 @@ switch (Deno.args[0]) {
 	default:
 		console.log(`This build tool is made by MrKleeblatt. Copyright 2022. Usage:
 
-		init
-		 |----> initiates a new project
-		init <NAME>
-		 |----> creates a new directory with <NAME> and initiates a new project inside it
-		build
+		init <NAME?>
+		 |----> (optionally creates a new directory with NAME and chdir into it) initiates a new project
+		build <TARGET>
 		 |----> builds an executable in "build" directory
 		clean
 		 |----> cleans up the build directory
-		run
+		run <TARGET>
 		 |----> runs the executable with lowest priority on linux (DO NOT USE ON WINDOWS)
 		`)
 		break;
@@ -84,9 +85,9 @@ int main(int argc, char** argv){
 	let count = 0
 	for (const file of Deno.readDirSync(".idea/runConfigurations")) if (file.isFile && file.name.endsWith(".xml")) { ++count; break }
 	if (count == 0)
-		Deno.writeTextFileSync(`.idea/runConfigurations/${Config.name}.xml`,
+		Deno.writeTextFileSync(`.idea/runConfigurations/${Config["default"].executable_name}.xml`,
 			`<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="${Config.name}" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="${Deno.cwd().split("/").at(-1)}" TARGET_NAME="kleebuild" CONFIG_NAME="kleebuild" RUN_PATH="$PROJECT_DIR$/build/${Config.name}">
+  <configuration default="false" name="${Config["default"].executable_name}" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="${Deno.cwd().split("/").at(-1)}" TARGET_NAME="kleebuild" CONFIG_NAME="kleebuild" RUN_PATH="$PROJECT_DIR$/build/${Config["default"].executable_name}">
     <method v="2">
       <option name="CLION.EXTERNAL.BUILD" enabled="true" />
     </method>
@@ -112,7 +113,7 @@ int main(int argc, char** argv){
 </toolSet>`)
 	if (notExisting("compile_commands.json")) Deno.writeTextFileSync("compile_commands.json", JSON.stringify([{
 		directory: Deno.cwd(),
-		command: "gcc",
+		command: Config["default"].compiler,
 		file: "src/main.c"
 	}]))
 
@@ -125,24 +126,24 @@ async function build() {
 	for (const file of Deno.readDirSync("src")) if (file.name.endsWith(".c")) {
 		const process = Deno.run({
 			cmd: [
-				"gcc",
+				Config[Deno.args[1] || "default"].compiler,
 				"-c",
 				`src/${file.name}`,
 				"-o",
 				`build/${file.name.replace(".c", ".o")}`,
-				...Config.ccflags,
+				...Config[Deno.args[1] || "default"].ccflags,
 			],
 			stdout: "piped"
 		})
 		await process.status()
 	}
 	const options: string[] = [
-		"gcc",
+		Config[Deno.args[1] || "default"].compiler,
 		"-o",
-		"build/" + Config.name
+		"build/" + Config[Deno.args[1] || "default"].executable_name
 	]
 	for (const file of Deno.readDirSync("build")) if (file.name.endsWith(".o")) options.push("build/" + file.name)
-	options.push(...Config.ccflags)
+	options.push(...Config[Deno.args[1] || "default"].ccflags)
 	const process = Deno.run({
 		cmd: options,
 		stdout: "piped"
@@ -157,7 +158,7 @@ function clean() {
 
 function run() {
 	Deno.run({
-		cmd: ["nice", "-n", "20", `${Deno.cwd()}/build/${Config.name}`],
+		cmd: ["nice", "-n", "20", `${Deno.cwd()}/build/${Config[Deno.args[1] || "default"].executable_name}`],
 		stdout: "piped"
 	})
 }
