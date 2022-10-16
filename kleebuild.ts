@@ -7,18 +7,19 @@ function notExisting(filename: string): boolean {
 		else throw error;
 	}
 }
-
-if (notExisting("./kleebuild.json")) {
-	Deno.writeTextFileSync("./kleebuild.json", JSON.stringify({
-		default: {
-			executable_name: "Main",
-			compiler: "gcc",
-			ccflags: ["-Wall"]
-		}
-	}))
+let Config: { [key: string]: { executable_name: string, compiler: string, ccflags: string[] } }
+if ((Deno.args[0] == "init" || Deno.args[0] == "build" || Deno.args[0] == "run")) {
+	if (notExisting("./kleebuild.json")) {
+		Deno.writeTextFileSync("./kleebuild.json", JSON.stringify({
+			default: {
+				executable_name: "Main",
+				compiler: "gcc",
+				ccflags: ["-Wall"]
+			}
+		}))
+	}
+	Config = JSON.parse(Deno.readTextFileSync("./kleebuild.json"))
 }
-
-const Config: { [key: string]: { executable_name: string, compiler: string, ccflags: string[] } } = JSON.parse(Deno.readTextFileSync("./kleebuild.json"))
 switch (Deno.args[0]) {
 	case "init":
 		if (Deno.args[1]) {
@@ -122,15 +123,27 @@ int main(int argc, char** argv){
 }
 
 async function build() {
+	let files: string[];
+	let readAllNamesRecursively: (path: string) => string[];
+
 	if (notExisting("build")) Deno.mkdirSync("build")
-	for (const file of Deno.readDirSync("src")) if (file.name.endsWith(".c")) {
+	readAllNamesRecursively = (path: string) => {
+		const result: string[] = []
+		for (const file of Deno.readDirSync(path)) {
+			if (file.isDirectory) for (const f of readAllNamesRecursively(path + "/" + file.name)) result.push(file.name + "/" + f)
+			else result.push(file.name)
+		}
+		return result
+	}
+	files = readAllNamesRecursively("src")
+	for (const file of files) if (file.endsWith(".c")) {
 		const process = Deno.run({
 			cmd: [
 				Config[Deno.args[1] || "default"].compiler,
 				"-c",
-				`src/${file.name}`,
+				`src/${file}`,
 				"-o",
-				`build/${file.name.replace(".c", ".o")}`,
+				`build/${file.replace(".c", ".o").replaceAll(/.+\//g, "")}`,
 				...Config[Deno.args[1] || "default"].ccflags,
 			],
 			stdout: "piped"
@@ -140,10 +153,20 @@ async function build() {
 	const options: string[] = [
 		Config[Deno.args[1] || "default"].compiler,
 		"-o",
-		"build/" + Config[Deno.args[1] || "default"].executable_name
+		"build/" + Config[Deno.args[1] || "default"].executable_name || "default"
 	]
-	for (const file of Deno.readDirSync("build")) if (file.name.endsWith(".o")) options.push("build/" + file.name)
+	readAllNamesRecursively = (path: string): string[] => {
+		const result: string[] = []
+		for (const file of Deno.readDirSync(path)) {
+			if (file.isDirectory) for (const f of readAllNamesRecursively(path + "/" + file.name)) result.push(file.name + "/" + f)
+			else if (file.name.endsWith(".o")) result.push(file.name)
+		}
+		return result
+	}
+	files = readAllNamesRecursively("build")
+	for (const file of files) options.push("build/" + file)
 	options.push(...Config[Deno.args[1] || "default"].ccflags)
+	console.log(options)
 	const process = Deno.run({
 		cmd: options,
 		stdout: "piped"
